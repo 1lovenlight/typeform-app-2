@@ -1,0 +1,32 @@
+DECLARE
+  api_key TEXT;
+  api_url TEXT;
+BEGIN
+  -- Only process if status changed to 'processing'
+  IF NEW.scoring_status = 'processing' AND OLD.scoring_status != 'processing' THEN
+    
+    -- Retrieve API key and URL from Vault
+    SELECT decrypted_secret INTO api_key
+    FROM vault.decrypted_secrets
+    WHERE name = 'workflow_api_key'
+    LIMIT 1;
+    
+    SELECT decrypted_secret INTO api_url
+    FROM vault.decrypted_secrets
+    WHERE name = 'next_api_url'
+    LIMIT 1;
+    
+    -- Call the API - let it handle all validation and business logic
+    PERFORM net.http_post(
+      url := api_url || '/api/practice/score-practice-call',
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || api_key,
+        'ngrok-skip-browser-warning', 'true'
+      ),
+      body := jsonb_build_object('practice_call_id', NEW.id::text)
+    );
+  END IF;
+  
+  RETURN NEW;
+END;

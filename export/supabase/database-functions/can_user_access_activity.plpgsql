@@ -1,0 +1,27 @@
+declare
+  v_required_count int;
+  v_completed_count int;
+begin
+  -- Count how many prerequisites are required
+  select count(*)
+  into v_required_count
+  from activity_requirements
+  where activity_id = p_activity_id;
+  
+  -- If no requirements, always accessible
+  if v_required_count = 0 then
+    return true;
+  end if;
+  
+  -- Count how many required activities the user has completed
+  select count(*)
+  into v_completed_count
+  from activity_requirements ar
+  inner join user_activity_completions uac
+    on uac.activity_id = ar.requires_activity_id
+    and uac.user_id = p_user_id
+  where ar.activity_id = p_activity_id;
+  
+  -- User can access if they've completed all requirements
+  return v_completed_count >= v_required_count;
+end;

@@ -1,0 +1,5 @@
+begin
+  insert into user_activity_completions (user_id, activity_id)
+  values (p_user_id, p_activity_id)
+  on conflict (user_id, activity_id) do nothing;
+end;
